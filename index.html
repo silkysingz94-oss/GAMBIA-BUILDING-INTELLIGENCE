@@ -46,7 +46,7 @@ footer{font-size:9px;color:#64748b;line-height:1.6;border-top:1px solid var(--li
 <div class="field"><label>WARD</label><select id="ward"><option value="">All wards</option></select></div>
 <div class="field"><label>ENUMERATION AREA</label><select id="ea"><option value="">All EAs</option></select></div>
 <div class="btnrow"><button class="primary" id="selectAreaBtn">USE SELECTED AREA</button><button class="secondary" id="resetSelectBtn">RESET</button></div>
-<div class="note">You can also draw a rectangle or polygon using the map tools. Drawing an area overrides the administrative selection.</div>
+<div class="note">You can also draw a rectangle or polygon using the map tools. Footprint retrieval starts automatically after selecting or drawing an area. No separate building GeoJSON upload is required.</div>
 <div class="field"><label>BUILDING CONFIDENCE THRESHOLD</label><select id="confidence"><option value=".65">0.65 — Maximum coverage</option><option value=".70">0.70</option><option value=".75" selected>0.75 — Recommended starting point</option><option value=".80">0.80</option><option value=".85">0.85</option><option value=".90">0.90</option><option value=".95">0.95</option></select></div>
 <div class="field"><label>BASEMAP</label><select id="basemap"><option value="satellite" selected>Satellite imagery</option><option value="hybrid">Hybrid imagery</option><option value="street">Street map</option><option value="terrain">Terrain</option></select></div>
 <div class="btnrow"><button class="primary" id="extractBtn">EXTRACT FOOTPRINTS</button><button class="danger" id="clearBtn">CLEAR RESULTS</button></div>
@@ -108,9 +108,9 @@ function filtered(until="ea"){const order=["region","lga","district","ward","ea"
 function refresh(from){const order=["region","lga","district","ward","ea"],i=order.indexOf(from);for(let j=i+1;j<order.length;j++){const id=order[j],prev=order[j-1],fs=prev==="region"?admin.filter(f=>!$(prev).value||prop(f,aliases[prev])===$(prev).value):filtered(prev);fill(id,unique(fs,aliases[id]),"All "+id.toUpperCase()+"S")}}
 async function loadAdmin(){try{const r=await fetch("/api/admin");const d=await r.json();if(!r.ok)throw Error(d.error||r.statusText);admin=d.features||[];adminLayer.addData(d);fill("region",unique(admin,aliases.region),"All regions");refresh("region");if(adminLayer.getBounds().isValid())map.fitBounds(adminLayer.getBounds(),{padding:[12,12]});msg("Administrative boundaries loaded: "+fmt(admin.length,0)+" features. Select an area or draw on the map.","BOUNDARIES READY")}catch(e){msg("Boundary service error: "+e.message+". You can still draw an area on the map.","DRAW AREA MODE")}}
 function unionFeatures(fs){const valid=fs.filter(f=>f.geometry&&["Polygon","MultiPolygon"].includes(f.geometry.type));if(!valid.length)return null;try{return valid.length===1?valid[0]:turf.union(turf.featureCollection(valid))}catch(e){return turf.featureCollection(valid)}}
-function chooseAdmin(){aoi=null;aoiSource="";drawn.clearLayers();const fs=admin.filter(f=>Object.keys(aliases).every(id=>!$(id).value||prop(f,aliases[id])===$(id).value));const geom=unionFeatures(fs);if(!geom){msg("No matching polygon boundary found. Try another selection or draw an area.","AREA NOT FOUND");return}aoi=geom;aoiSource="Administrative selection";showAOI();msg("Selected area ready. "+fs.length+" boundary feature(s). Click Extract Footprints.","AREA SELECTED")}
+function chooseAdmin(){aoi=null;aoiSource="";drawn.clearLayers();const fs=admin.filter(f=>Object.keys(aliases).every(id=>!$(id).value||prop(f,aliases[id])===$(id).value));const geom=unionFeatures(fs);if(!geom){msg("No matching polygon boundary found. Try another selection or draw an area.","AREA NOT FOUND");return}aoi=geom;aoiSource="Administrative selection";showAOI();msg("Area selected ("+fs.length+" boundary feature(s)). Starting automatic footprint extraction...","AUTO EXTRACTING");setTimeout(extract,250)}
 function showAOI(){selectedLayer.clearLayers();if(aoi)selectedLayer.addData(aoi);const b=L.geoJSON(aoi).getBounds();if(b.isValid())map.fitBounds(b,{padding:[20,20]});$("aoi").textContent=fmt(turf.area(aoi)/1e6)}
-map.on(L.Draw.Event.CREATED,e=>{drawn.clearLayers();drawn.addLayer(e.layer);aoi=e.layer.toGeoJSON();aoiSource="Drawn map area";showAOI();msg("Drawn area selected. Click Extract Footprints.","AREA SELECTED")});
+map.on(L.Draw.Event.CREATED,e=>{drawn.clearLayers();drawn.addLayer(e.layer);aoi=e.layer.toGeoJSON();aoiSource="Drawn map area";showAOI();msg("Drawn area selected. Starting automatic footprint extraction...","AUTO EXTRACTING");setTimeout(extract,250)});
 map.on(L.Draw.Event.EDITED,()=>{const ls=drawn.getLayers();if(ls.length){aoi=ls[0].toGeoJSON();aoiSource="Edited map area";showAOI()}});
 map.on(L.Draw.Event.DELETED,()=>{aoi=null;aoiSource="";selectedLayer.clearLayers();$("aoi").textContent="0";msg("Drawn area removed. Select or draw an area.","READY")});
 async function extract(){
@@ -120,15 +120,15 @@ async function extract(){
  buildingLayer.clearLayers();results=[];
  try{
   const r=await fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({aoi,confidence:Number($("confidence").value)})});
-  const d=await r.json();if(!r.ok)throw Error((d.error||"Extraction failed")+(d.details?": "+d.details:""));
+  const d=await r.json();if(!r.ok){const detail=typeof d.details==="string"?d.details:(d.details?JSON.stringify(d.details):"");throw Error((d.error||"Extraction failed")+(detail?"\n"+detail:"")+(d.hint?"\n"+d.hint:""))}
   results=d.geojson.features||[];summary=d.summary||{};
   buildingLayer.addData(d.geojson);
   if(results.length){const b=buildingLayer.getBounds();if(b.isValid())map.fitBounds(b,{padding:[25,25],maxZoom:18})}
   progress(100,"Extraction complete.");updateAnalytics();
   $("csvBtn").disabled=!results.length;$("geojsonBtn").disabled=!results.length;$("boundaryBtn").disabled=false;
   const failures=(d.tile_errors||[]).length;
-  msg("Completed.\nIntersecting tiles: "+summary.tiles_intersecting+"\nSuccessful tiles: "+summary.tiles_succeeded+"\nFailed tiles: "+summary.tiles_failed+"\nFootprints: "+fmt(results.length,0)+(failures?"\nSome tile downloads failed; see local terminal for details.":""),"EXTRACTION COMPLETE");
- }catch(e){console.error(e);progress(0,"Extraction stopped.");msg("Extraction error: "+e.message+"\nEnsure app.py is running and the computer has internet access.","ERROR")}
+  msg("Completed.\nIntersecting tiles: "+summary.tiles_intersecting+"\nSuccessful tiles: "+summary.tiles_succeeded+"\nFailed tiles: "+summary.tiles_failed+"\nFootprints: "+fmt(results.length,0)+"\nElapsed: "+(summary.elapsed_seconds??"—")+" seconds"+(failures?"\nSome tile downloads failed; see local terminal for details.":""),"EXTRACTION COMPLETE");
+ }catch(e){console.error(e);progress(0,"Extraction stopped.");msg("Extraction error: "+e.message+"\nFor tile-index diagnostics, open http://127.0.0.1:5000/api/diagnostics in another tab.","ERROR")}
  finally{$("extractBtn").disabled=false}
 }
 function updateAnalytics(){
@@ -150,7 +150,7 @@ $("basemap").onchange=e=>{map.removeLayer(activeBase);activeBase=basemaps[e.targ
 $("csvBtn").onclick=()=>{const cols=["latitude","longitude","area_in_meters","confidence","full_plus_code","tile_id"],q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';const rows=[cols.join(",")];results.forEach(f=>rows.push(cols.map(k=>q(f.properties[k])).join(",")));download(rows.join("\n"),"Gambia_Selected_Area_Buildings.csv","text/csv")};
 $("geojsonBtn").onclick=()=>download(JSON.stringify({type:"FeatureCollection",features:results},null,2),"Gambia_Selected_Area_Buildings.geojson","application/geo+json");
 $("boundaryBtn").onclick=()=>{if(aoi)download(JSON.stringify(aoi,null,2),"Gambia_Selected_Area.geojson","application/geo+json")};
-fetch("/api/health").then(r=>r.json()).then(d=>msg("Local extraction service connected. Loading administrative boundaries...","SERVICE READY")).catch(()=>msg("Cannot reach local service. Start app.py and open http://127.0.0.1:5000","SERVICE OFFLINE"));
+fetch("/api/health").then(r=>r.json()).then(d=>msg("Local extraction service v"+(d.version||"1")+" connected. Loading administrative boundaries...","SERVICE READY")).catch(()=>msg("Cannot reach local service. Start app.py and open http://127.0.0.1:5000","SERVICE OFFLINE"));
 loadAdmin();
 setTimeout(()=>map.invalidateSize(),500);
 </script>
