@@ -1,7 +1,14 @@
-from flask import Flask, request, jsonify, send_from_directory
-import requests, gzip, csv, io, os, traceback
-from shapely.geometry import shape, mapping
+import csv
+import gzip
+import io
+import os
+import traceback
+
+import requests
+# pyrefly: ignore[missing-import]
+from flask import Flask, jsonify, request, send_from_directory
 from shapely import wkt
+from shapely.geometry import mapping, shape
 from shapely.ops import unary_union
 
 app = Flask(__name__, static_folder="static")
