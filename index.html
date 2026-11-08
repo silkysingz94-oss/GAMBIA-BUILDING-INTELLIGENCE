@@ -1,794 +1,157 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GBoS GEOAI | Gambia Building Intelligence</title>
-
+<title>GBoS GEOAI | Gambia Building Footprint Intelligence</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
 <style>
-*{box-sizing:border-box}
-:root{
- --navy:#102b46;--blue:#1769aa;--green:#16845b;
- --bg:#eef2f6;--line:#dce4ec;--red:#e11d48;
-}
-body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:#26384a}
-header{
- background:linear-gradient(110deg,#102b46,#1769aa);
- color:white;padding:15px 20px;
-}
-header h1{font-size:21px;margin:0 0 5px}
-header p{font-size:11px;margin:0;color:#dceafa}
-.header-flex{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.tag{font-size:11px;background:#ffffff20;padding:8px 12px;border-radius:5px}
-.layout{
- display:grid;
- grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
- gap:10px;padding:10px;height:calc(100vh - 76px);min-height:680px;
-}
-.panel{
- background:white;border:1px solid var(--line);border-radius:7px;
- padding:13px;min-width:0;overflow-y:auto;
-}
-.map-panel{padding:0;overflow:hidden;display:flex;flex-direction:column}
-.map-toolbar{padding:10px;border-bottom:1px solid var(--line)}
-.map-title{font-size:12px;font-weight:bold;color:var(--navy);margin-bottom:5px}
-#map{width:100%;flex:1;min-height:450px}
-.section{
- font-size:12px;font-weight:bold;color:var(--navy);
- border-bottom:1px solid var(--line);padding-bottom:8px;margin:4px 0 12px;
-}
-label{display:block;font-size:11px;font-weight:bold;color:#526579;margin:11px 0 5px}
-input,select{
- width:100%;padding:9px;border:1px solid #cbd6e1;
- border-radius:5px;background:white;font-size:12px;color:#26384a;
-}
-button{
- padding:10px;border:0;border-radius:5px;background:var(--blue);
- color:white;font-size:11px;font-weight:bold;cursor:pointer;
-}
-button:hover{filter:brightness(.92)}
-button.green{background:var(--green)}
-button.gray{background:#647789}
-.buttons{display:flex;gap:7px;margin-top:9px}
-.buttons button{flex:1}
-.note{font-size:11px;color:#718096;line-height:1.5}
-.info{background:#eef6fc;border:1px solid #c9deef;padding:9px;border-radius:5px;font-size:11px;line-height:1.5;margin:10px 0}
-.error{display:none;background:#fff0ed;color:#a43c2e;padding:9px;border-radius:5px;font-size:11px;white-space:pre-wrap;margin:8px 0}
-.success{background:#edf8f1;color:#17613e;padding:8px;border-radius:5px;font-size:11px;margin:8px 0}
-.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.kpi{background:#f4f7fa;border:1px solid var(--line);padding:10px;border-radius:6px;min-width:0}
-.kpi small{display:block;font-size:10px;color:#718096;margin-bottom:6px}
-.kpi strong{font-size:19px;color:var(--navy);overflow-wrap:anywhere}
-.kpi span{display:block;font-size:10px;color:#718096;margin-top:4px}
-.chart{height:205px;width:100%;margin:8px 0 17px}
-.legend{font-size:11px;margin:8px 0}
-.dot{display:inline-block;width:13px;height:13px;margin-right:7px;vertical-align:middle;border-radius:2px}
-hr{border:0;border-top:1px solid var(--line);margin:14px 0}
-footer{font-size:10px;color:#718096;line-height:1.6;margin-top:15px}
-@media(max-width:950px){
- .layout{height:auto;grid-template-columns:1fr;min-height:0}
- .panel{max-height:none}
- .map-panel{height:600px}
- .header-flex{align-items:flex-start;flex-direction:column}
-}
+:root{--navy:#102b46;--blue:#1769aa;--cyan:#19a6b5;--bg:#eef3f8;--line:#dce5ee;--muted:#64748b;--text:#1e293b}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{height:66px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.brand{font-size:17px;font-weight:800}.brand small{display:block;font-size:10px;font-weight:400;color:#c7d8e9;margin-top:4px}
+.status{font-size:11px;background:#1c4568;padding:8px 12px;border-radius:20px}
+main{height:calc(100vh - 66px);display:grid;grid-template-columns:minmax(260px,1fr) minmax(320px,1fr) minmax(260px,1fr);gap:10px;padding:10px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:9px;min-width:0;overflow:hidden;display:flex;flex-direction:column}
+.panel-head{padding:13px 15px;background:#f8fafc;border-bottom:1px solid var(--line);font-weight:800;font-size:13px;color:var(--navy)}
+.panel-body{padding:14px;overflow-y:auto;flex:1}.map-panel{position:relative}#map{height:100%;width:100%;min-height:300px;z-index:1}
+.map-top{position:absolute;z-index:500;top:10px;left:55px;pointer-events:none}.map-tag{display:inline-block;background:#fff;padding:8px 10px;border-radius:6px;box-shadow:0 1px 7px #0002;font-size:11px;font-weight:bold}
+.field{margin-bottom:12px}label{display:block;font-size:11px;font-weight:700;color:#475569;margin-bottom:5px}
+select{width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;font-size:12px;color:#334155}
+button{border:0;border-radius:5px;padding:10px 12px;font-size:11px;font-weight:700;cursor:pointer}
+.primary{background:var(--blue);color:white}.secondary{background:#e8eef5;color:#25415c}.danger{background:#fff0f0;color:#a83232}
+button:disabled{opacity:.5;cursor:not-allowed}.btnrow{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.btnrow button{flex:1}
+.note{font-size:10px;line-height:1.55;color:var(--muted);background:#f1f6fa;padding:10px;border-radius:5px;margin:10px 0}
+.progress{height:7px;background:#e5eaf0;border-radius:8px;overflow:hidden;margin:8px 0}.progress>div{height:100%;width:0;background:var(--cyan);transition:width .2s}
+#message{font-size:11px;line-height:1.5;color:#475569;min-height:34px;white-space:pre-wrap}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kpi{border:1px solid var(--line);border-radius:7px;padding:11px;min-width:0}
+.kpi span{display:block;color:var(--muted);font-size:10px;margin-bottom:7px}.kpi strong{font-size:20px;color:var(--navy);overflow-wrap:anywhere}
+.kpi small{display:block;color:var(--muted);font-size:9px;margin-top:4px}
+.section-title{font-size:11px;font-weight:800;color:var(--navy);margin:17px 0 9px}.chart{height:205px;width:100%}
+.legend{font-size:10px;color:#475569;line-height:1.7}.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+footer{font-size:9px;color:#64748b;line-height:1.6;border-top:1px solid var(--line);padding-top:12px;margin-top:15px}
+@media(max-width:850px){main{height:auto;min-height:calc(100vh - 66px);grid-template-columns:1fr}.panel{min-height:340px}.map-panel{height:500px}}
 </style>
 </head>
-
 <body>
-<header>
- <div class="header-flex">
-  <div>
-   <h1>GAMBIA BUILDING INTELLIGENCE</h1>
-   <p>Building Footprints • Estimated Counts • Spatial Distribution • Building Density</p>
-  </div>
-  <div class="tag">GBoS GEOAI | GIS / CARTOGRAPHY UNIT</div>
- </div>
-</header>
-
-<main class="layout">
-
-<!-- CONTROLS -->
-<aside class="panel">
- <div class="section">01 | DATA & CONTROLS</div>
- <div id="status" class="note">Initialising dashboard...</div>
- <div id="error" class="error"></div>
- <div id="success" class="success" style="display:none"></div>
-
- <label>Building footprint GeoJSON URL</label>
- <input id="buildingUrl" placeholder="Paste public building GeoJSON URL">
- <div class="buttons">
-  <button id="loadUrlBtn">LOAD URL</button>
-  <button class="gray" id="uploadBtn">UPLOAD FILE</button>
- </div>
- <input type="file" id="buildingFile" accept=".json,.geojson" style="display:none">
-
- <label>Reporting year</label>
- <select id="year">
-  <option>2020</option><option>2021</option><option>2022</option>
-  <option>2023</option><option>2024</option><option>2025</option>
-  <option selected>2026</option>
- </select>
-
- <hr>
- <div class="section">02 | ADMINISTRATIVE SELECTION</div>
-
- <label>Region / RCO</label>
- <select id="region"><option value="">All regions</option></select>
-
- <label>LGA</label>
- <select id="lga"><option value="">All LGAs</option></select>
-
- <label>District</label>
- <select id="district"><option value="">All districts</option></select>
-
- <label>Ward</label>
- <select id="ward"><option value="">All wards</option></select>
-
- <label>Enumeration Area</label>
- <select id="ea"><option value="">All EAs</option></select>
-
- <hr>
- <div class="section">03 | MAP SETTINGS</div>
- <label>Basemap</label>
- <select id="basemap">
-  <option value="street">Street</option>
-  <option value="satellite">Satellite</option>
-  <option value="hybrid">Hybrid</option>
-  <option value="terrain">Terrain</option>
- </select>
-
- <label>Building display</label>
- <select id="display">
-  <option value="selected">Selected-area buildings</option>
-  <option value="all">All loaded buildings</option>
- </select>
-
- <div class="buttons">
-  <button class="green" id="runBtn">RUN ANALYSIS</button>
-  <button class="gray" id="resetBtn">RESET</button>
- </div>
-
- <hr>
- <div class="section">04 | EXPORT RESULTS</div>
- <div class="buttons">
-  <button id="csvBtn">EXPORT CSV</button>
-  <button class="gray" id="geoBtn">EXPORT GEOJSON</button>
- </div>
- <button id="boundaryBtn" style="width:100%;margin-top:7px">EXPORT SELECTED BOUNDARY</button>
-
- <div class="info">
-  Boundary source: GAMBIA-BUILDING-INTELLIGENCE GitHub repository.
-  Building footprints must be loaded separately.
- </div>
-
- <footer>
-  Produced by Ansu Singhateh<br>
-  GIS Analyst | GIS / Cartography Unit<br>
-  Gambia Bureau of Statistics<br>
-  GBoS GEOAI • Research and educational use
- </footer>
-</aside>
-
-<!-- MAP -->
-<section class="panel map-panel">
- <div class="map-toolbar">
-  <div class="map-title">INTERACTIVE BUILDING FOOTPRINT MAP</div>
-  <span class="note" id="mapStatus">Loading map...</span>
- </div>
- <div id="map"></div>
-</section>
-
-<!-- ANALYTICS -->
-<aside class="panel">
- <div class="section">05 | SELECTED-AREA INDICATORS</div>
-
- <div class="kpis">
-  <div class="kpi"><small>Building footprints</small><strong id="kBuildings">0</strong><span>Features</span></div>
-  <div class="kpi"><small>Footprint area</small><strong id="kArea">0</strong><span>Hectares</span></div>
-  <div class="kpi"><small>Selected area</small><strong id="kAOI">0</strong><span>km²</span></div>
-  <div class="kpi"><small>Building density</small><strong id="kDensity">0</strong><span>Buildings/km²</span></div>
-  <div class="kpi"><small>Mean footprint</small><strong id="kMean">0</strong><span>m²</span></div>
-  <div class="kpi"><small>Reporting year</small><strong id="kYear">2026</strong><span>Reporting label</span></div>
- </div>
-
- <hr>
- <div class="section">06 | BUILDINGS BY DISTRICT</div>
- <div id="adminChart" class="chart"></div>
-
- <div class="section">07 | FOOTPRINT AREA DISTRIBUTION</div>
- <div id="areaChart" class="chart"></div>
-
- <div class="section">08 | BUILDING SIZE CATEGORIES</div>
- <div id="sizeChart" class="chart"></div>
-
- <hr>
- <div class="section">09 | MAP LEGEND</div>
- <div class="legend"><span class="dot" style="background:#e11d48"></span>Building footprints</div>
- <div class="legend"><span class="dot" style="background:#1769aa"></span>Selected boundary</div>
-
- <hr>
- <div class="section">10 | METHODOLOGY</div>
- <p class="note">Building counts represent valid building polygon features in the loaded dataset.</p>
- <p class="note">Footprint area is calculated using Turf.js geodesic polygon area.</p>
- <p class="note">Building density is calculated as building count divided by selected administrative area.</p>
- <p class="note">The reporting year is not a verified building construction year.</p>
- <p class="note">The original Open Buildings script assigns the same collection to every selected year. It does not contain historical annual building observations.</p>
- <p class="note">Building footprints do not directly indicate occupancy, household count, number of floors or building use.</p>
-</aside>
-
+<header><div class="brand">GBoS GEOAI<small>GAMBIA BUILDING FOOTPRINT INTELLIGENCE</small></div><div class="status" id="topStatus">CONNECTING</div></header>
+<main>
+<section class="panel">
+<div class="panel-head">01 | AREA & EXTRACTION CONTROLS</div>
+<div class="panel-body">
+<div class="field"><label>REGION</label><select id="region"><option value="">All regions</option></select></div>
+<div class="field"><label>LOCAL GOVERNMENT AREA</label><select id="lga"><option value="">All LGAs</option></select></div>
+<div class="field"><label>DISTRICT</label><select id="district"><option value="">All districts</option></select></div>
+<div class="field"><label>WARD</label><select id="ward"><option value="">All wards</option></select></div>
+<div class="field"><label>ENUMERATION AREA</label><select id="ea"><option value="">All EAs</option></select></div>
+<div class="btnrow"><button class="primary" id="selectAreaBtn">USE SELECTED AREA</button><button class="secondary" id="resetSelectBtn">RESET</button></div>
+<div class="note">You can also draw a rectangle or polygon using the map tools. Drawing an area overrides the administrative selection.</div>
+<div class="field"><label>BUILDING CONFIDENCE THRESHOLD</label><select id="confidence"><option value=".65">0.65 — Maximum coverage</option><option value=".70">0.70</option><option value=".75" selected>0.75 — Recommended starting point</option><option value=".80">0.80</option><option value=".85">0.85</option><option value=".90">0.90</option><option value=".95">0.95</option></select></div>
+<div class="field"><label>BASEMAP</label><select id="basemap"><option value="satellite" selected>Satellite imagery</option><option value="hybrid">Hybrid imagery</option><option value="street">Street map</option><option value="terrain">Terrain</option></select></div>
+<div class="btnrow"><button class="primary" id="extractBtn">EXTRACT FOOTPRINTS</button><button class="danger" id="clearBtn">CLEAR RESULTS</button></div>
+<div class="section-title">EXTRACTION PROGRESS</div><div class="progress"><div id="progressBar"></div></div><div id="loadingText">Waiting for area selection.</div><div id="message">Connecting to local extraction service...</div>
+<div class="section-title">EXPORT SELECTED RESULTS</div>
+<div class="btnrow"><button class="secondary" id="csvBtn" disabled>CSV</button><button class="secondary" id="geojsonBtn" disabled>GEOJSON</button></div>
+<div class="btnrow"><button class="secondary" id="boundaryBtn" disabled>AREA GEOJSON</button></div>
+<div class="note"><b>Building source:</b> Google Open Buildings V3<br><b>Geometry:</b> WKT polygons<br><b>Projection:</b> WGS84 / EPSG:4326<br><b>Extraction:</b> Only selected-area intersections</div>
+</div></section>
+<section class="panel map-panel"><div class="map-top"><span class="map-tag">02 | INTERACTIVE BUILDING MAP</span></div><div id="map"></div></section>
+<section class="panel"><div class="panel-head">03 | SELECTED-AREA ANALYTICS</div><div class="panel-body">
+<div class="kpis">
+<div class="kpi"><span>BUILDING FOOTPRINTS</span><strong id="count">0</strong><small>Extracted polygons</small></div>
+<div class="kpi"><span>FOOTPRINT AREA</span><strong id="area">0</strong><small>Hectares</small></div>
+<div class="kpi"><span>SELECTED AREA</span><strong id="aoi">0</strong><small>Square kilometres</small></div>
+<div class="kpi"><span>BUILDING DENSITY</span><strong id="density">0</strong><small>Footprints / km²</small></div>
+<div class="kpi"><span>MEAN FOOTPRINT</span><strong id="mean">0</strong><small>Square metres</small></div>
+<div class="kpi"><span>MEAN CONFIDENCE</span><strong id="meanConf">0</strong><small>Detection confidence</small></div>
+</div>
+<div class="section-title">BUILDINGS BY CONFIDENCE CLASS</div><div id="confidenceChart" class="chart"></div>
+<div class="section-title">FOOTPRINT SIZE DISTRIBUTION</div><div id="sizeChart" class="chart"></div>
+<div class="section-title">EXTRACTION SUMMARY</div><div class="note" id="summary">No extraction has been performed.</div>
+<div class="section-title">MAP LEGEND</div><div class="legend"><div><span class="swatch" style="background:#e53935"></span>Extracted building footprints</div><div><span class="swatch" style="background:#1976d2"></span>Administrative boundaries</div><div><span class="swatch" style="background:#00a6a6"></span>Selected area</div></div>
+<footer>Produced by Ansu Singhateh<br>GIS Analyst | GIS / Cartography Unit | Gambia Bureau of Statistics<br>GBoS GEOAI • Research and educational use<br><br>Model detections are estimates, not a verified cadastral register.</footer>
+</div></section>
 </main>
-
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.2.0/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
 <script>
 "use strict";
-
-/* ==============================================
-   CONFIGURATION
-============================================== */
-
-const ADMIN_URLS=[
- "https://raw.githubusercontent.com/silkysingz94-oss/GAMBIA-BUILDING-INTELLIGENCE/main/Census_EAs_Geo.json",
- "https://raw.githubusercontent.com/silkysingz94-oss/GAMBIA-BUILDING-INTELLIGENCE/master/Census_EAs_Geo.json",
- "./Census_EAs_Geo.json"
-];
-
-let adminFeatures=[];
-let buildingFeatures=[];
-let selectedAdmin=[];
-let selectedBuildings=[];
-let adminLayer=null;
-let buildingLayer=null;
-
 const $=id=>document.getElementById(id);
-
-function setStatus(message){
- $("status").textContent=message;
-}
-function showError(message){
- $("error").style.display="block";
- $("error").textContent=message;
- $("success").style.display="none";
-}
-function clearMessages(){
- $("error").style.display="none";
- $("success").style.display="none";
-}
-function showSuccess(message){
- $("success").style.display="block";
- $("success").textContent=message;
- $("error").style.display="none";
-}
-function numberFormat(v,d=2){
- return Number(v||0).toLocaleString(undefined,{maximumFractionDigits:d});
-}
-function getProp(feature,names){
- const p=feature.properties||{};
- for(const name of names){
-  if(p[name]!==undefined&&p[name]!==null&&String(p[name]).trim()!=="")
-   return String(p[name]).trim();
- }
- return "";
-}
-
-const FIELDS={
- region:["RCO","rco","REGION","region","ADM1_NAME"],
- lga:["lganame","LGA_NAME","lga","ADM1_NAME"],
- district:["distname","DISTNAME","district","DISTRICT","ADM2_NAME"],
- ward:["wardname","WARDNAME","ward","WARD"],
- ea:["feacode","FEACODE","FEA_Code","ea_code","EANAME","eaname"]
-};
-
-function value(feature,level){
- return getProp(feature,FIELDS[level]);
-}
-function uniqueValues(features,level){
- return [...new Set(features.map(f=>value(f,level)).filter(Boolean))]
- .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
-}
-function fillSelect(id,values,placeholder){
- const el=$(id);
- const old=el.value;
- el.innerHTML="";
- const option=document.createElement("option");
- option.value="";
- option.textContent=placeholder;
- el.appendChild(option);
- values.forEach(v=>{
-  const o=document.createElement("option");
-  o.value=v;o.textContent=v;
-  el.appendChild(o);
- });
- if(values.includes(old))el.value=old;
-}
-
-/* ==============================================
-   MAP
-============================================== */
-
-const map=L.map("map",{preferCanvas:true}).setView([13.45,-15.4],8);
-
-const baseLayers={
- street:L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
-  maxZoom:19,attribution:"© OpenStreetMap"
- }),
- satellite:L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{
-  maxZoom:19,attribution:"© Esri"
- }),
- terrain:L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",{
-  maxZoom:17,attribution:"© OpenTopoMap"
- }),
+const map=L.map("map",{preferCanvas:true}).setView([13.45,-15.55],8);
+const basemaps={
+ satellite:L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19,attribution:"Esri"}),
+ street:L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}),
+ terrain:L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",{maxZoom:17,attribution:"© OpenTopoMap"}),
  hybrid:L.layerGroup([
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:19}),
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png",{maxZoom:19})
+  L.tileLayer("https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",{maxZoom:19})
  ])
 };
-
-let activeBase=baseLayers.street;
-activeBase.addTo(map);
-
-/* ==============================================
-   ADMIN BOUNDARY LOADING
-============================================== */
-
-async function loadAdminBoundaries(){
- const failures=[];
-
- for(const url of ADMIN_URLS){
-  try{
-   setStatus("Loading boundaries: "+url);
-   const response=await fetch(url,{cache:"no-store"});
-   if(!response.ok)throw new Error("HTTP "+response.status);
-
-   const json=await response.json();
-   if(!json||json.type!=="FeatureCollection"||!Array.isArray(json.features))
-    throw new Error("Invalid GeoJSON FeatureCollection");
-
-   adminFeatures=json.features.filter(f=>f&&f.geometry&&f.properties);
-
-   if(!adminFeatures.length)throw new Error("No valid features found");
-
-   if(!adminFeatures.some(f=>value(f,"region")||value(f,"lga")||value(f,"district")))
-    throw new Error("Expected administrative property fields were not found.");
-
-   initialiseSelectors();
-   selectedAdmin=getFilteredAdmin();
-   drawAdminBoundary();
-   runAnalysis();
-
-   setStatus("Successfully loaded "+adminFeatures.length.toLocaleString()+" boundary features.");
-   showSuccess("Administrative boundaries loaded successfully.");
-   return true;
-
-  }catch(err){
-   failures.push(url+" — "+err.message);
-   console.warn("Boundary source failed:",url,err);
-  }
- }
-
- setStatus("Boundary loading failed.");
- showError("Unable to load Gambia boundaries.\n\n"+failures.join("\n")+
- "\n\nCheck that Census_EAs_Geo.json exists in the GitHub repository and that the repository is public.");
- return false;
-}
-
-/* ==============================================
-   CASCADING SELECTORS
-============================================== */
-
-function getFilteredAdmin(){
- let features=adminFeatures;
- const r=$("region").value;
- const l=$("lga").value;
- const d=$("district").value;
- const w=$("ward").value;
- const e=$("ea").value;
-
- if(r)features=features.filter(f=>value(f,"region")===r);
- if(l)features=features.filter(f=>value(f,"lga")===l);
- if(d)features=features.filter(f=>value(f,"district")===d);
- if(w)features=features.filter(f=>value(f,"ward")===w);
- if(e)features=features.filter(f=>value(f,"ea")===e);
-
- return features;
-}
-
-function initialiseSelectors(){
- fillSelect("region",uniqueValues(adminFeatures,"region"),"All regions");
- updateCascade();
-}
-
-function updateCascade(){
- const r=$("region").value;
- const afterRegion=adminFeatures.filter(f=>!r||value(f,"region")===r);
- fillSelect("lga",uniqueValues(afterRegion,"lga"),"All LGAs");
-
- const l=$("lga").value;
- const afterLga=afterRegion.filter(f=>!l||value(f,"lga")===l);
- fillSelect("district",uniqueValues(afterLga,"district"),"All districts");
-
- const d=$("district").value;
- const afterDistrict=afterLga.filter(f=>!d||value(f,"district")===d);
- fillSelect("ward",uniqueValues(afterDistrict,"ward"),"All wards");
-
- const w=$("ward").value;
- const afterWard=afterDistrict.filter(f=>!w||value(f,"ward")===w);
- fillSelect("ea",uniqueValues(afterWard,"ea"),"All EAs");
-}
-
-["region","lga","district","ward","ea"].forEach(id=>{
- $(id).addEventListener("change",()=>{
-  updateCascade();
-  selectedAdmin=getFilteredAdmin();
-  drawAdminBoundary();
-  runAnalysis();
- });
-});
-
-/* ==============================================
-   ADMIN BOUNDARY MAP
-============================================== */
-
-function drawAdminBoundary(){
- if(adminLayer)map.removeLayer(adminLayer);
- adminLayer=null;
-
- if(!selectedAdmin.length)return;
-
- adminLayer=L.geoJSON({
-  type:"FeatureCollection",features:selectedAdmin
- },{
-  style:{
-   color:"#1769aa",weight:2,
-   fillColor:"#1769aa",fillOpacity:.07
-  }
- }).addTo(map);
-
- const bounds=adminLayer.getBounds();
- if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20],maxZoom:14});
-}
-
-/* ==============================================
-   BUILDING DATA
-============================================== */
-
-function validateGeoJSON(json){
- if(json.type==="FeatureCollection"&&Array.isArray(json.features))
-  return json.features.filter(f=>f&&f.geometry);
- if(json.type==="Feature"&&json.geometry)return [json];
- throw new Error("The file is not a valid GeoJSON FeatureCollection.");
-}
-
-async function loadBuildingURL(){
- const url=$("buildingUrl").value.trim();
- if(!url)return showError("Please enter a public building GeoJSON URL.");
-
+let activeBase=basemaps.satellite;activeBase.addTo(map);
+const adminLayer=L.geoJSON(null,{style:{color:"#1976d2",weight:1,fillOpacity:.015}}).addTo(map);
+const selectedLayer=L.geoJSON(null,{style:{color:"#00a6a6",weight:3,fillColor:"#00a6a6",fillOpacity:.08}}).addTo(map);
+const buildingLayer=L.geoJSON(null,{style:{color:"#b71c1c",weight:.45,fillColor:"#e53935",fillOpacity:.72}}).addTo(map);
+const drawn=new L.FeatureGroup().addTo(map);
+map.addControl(new L.Control.Draw({draw:{polygon:{allowIntersection:false,showArea:true},rectangle:true,polyline:false,circle:false,circlemarker:false,marker:false},edit:{featureGroup:drawn}}));
+let admin=[],aoi=null,aoiSource="",results=[],summary={};
+const aliases={region:["RCO","rco","REGION","region","REGION_NAME","ADM1_NAME"],lga:["lganame","LGA_NAME","lga","LGA","LGANAME"],district:["distname","DISTNAME","district","DISTRICT","ADM2_NAME"],ward:["wardname","WARDNAME","ward","WARD"],ea:["feacode","FEACODE","FEA_Code","ea_code","eaname","EANAME","EA_CODE"]};
+function msg(s,status="READY"){$("message").textContent=s;$("topStatus").textContent=status}
+function progress(p,s){$("progressBar").style.width=p+"%";$("loadingText").textContent=s}
+function fmt(n,d=2){return Number(n||0).toLocaleString(undefined,{maximumFractionDigits:d})}
+function prop(f,keys){for(const k of keys){const v=f.properties?.[k];if(v!==undefined&&v!==null&&String(v).trim())return String(v).trim()}return ""}
+function unique(fs,keys){return [...new Set(fs.map(f=>prop(f,keys)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))}
+function fill(id,values,label){const el=$(id),old=el.value;el.innerHTML="";el.add(new Option(label,""));values.forEach(v=>el.add(new Option(v,v)));if(values.includes(old))el.value=old}
+function filtered(until="ea"){const order=["region","lga","district","ward","ea"];let fs=admin.slice();for(const id of order.slice(0,order.indexOf(until)+1)){const v=$(id).value;if(v)fs=fs.filter(f=>prop(f,aliases[id])===v)}return fs}
+function refresh(from){const order=["region","lga","district","ward","ea"],i=order.indexOf(from);for(let j=i+1;j<order.length;j++){const id=order[j],prev=order[j-1],fs=prev==="region"?admin.filter(f=>!$(prev).value||prop(f,aliases[prev])===$(prev).value):filtered(prev);fill(id,unique(fs,aliases[id]),"All "+id.toUpperCase()+"S")}}
+async function loadAdmin(){try{const r=await fetch("/api/admin");const d=await r.json();if(!r.ok)throw Error(d.error||r.statusText);admin=d.features||[];adminLayer.addData(d);fill("region",unique(admin,aliases.region),"All regions");refresh("region");if(adminLayer.getBounds().isValid())map.fitBounds(adminLayer.getBounds(),{padding:[12,12]});msg("Administrative boundaries loaded: "+fmt(admin.length,0)+" features. Select an area or draw on the map.","BOUNDARIES READY")}catch(e){msg("Boundary service error: "+e.message+". You can still draw an area on the map.","DRAW AREA MODE")}}
+function unionFeatures(fs){const valid=fs.filter(f=>f.geometry&&["Polygon","MultiPolygon"].includes(f.geometry.type));if(!valid.length)return null;try{return valid.length===1?valid[0]:turf.union(turf.featureCollection(valid))}catch(e){return turf.featureCollection(valid)}}
+function chooseAdmin(){aoi=null;aoiSource="";drawn.clearLayers();const fs=admin.filter(f=>Object.keys(aliases).every(id=>!$(id).value||prop(f,aliases[id])===$(id).value));const geom=unionFeatures(fs);if(!geom){msg("No matching polygon boundary found. Try another selection or draw an area.","AREA NOT FOUND");return}aoi=geom;aoiSource="Administrative selection";showAOI();msg("Selected area ready. "+fs.length+" boundary feature(s). Click Extract Footprints.","AREA SELECTED")}
+function showAOI(){selectedLayer.clearLayers();if(aoi)selectedLayer.addData(aoi);const b=L.geoJSON(aoi).getBounds();if(b.isValid())map.fitBounds(b,{padding:[20,20]});$("aoi").textContent=fmt(turf.area(aoi)/1e6)}
+map.on(L.Draw.Event.CREATED,e=>{drawn.clearLayers();drawn.addLayer(e.layer);aoi=e.layer.toGeoJSON();aoiSource="Drawn map area";showAOI();msg("Drawn area selected. Click Extract Footprints.","AREA SELECTED")});
+map.on(L.Draw.Event.EDITED,()=>{const ls=drawn.getLayers();if(ls.length){aoi=ls[0].toGeoJSON();aoiSource="Edited map area";showAOI()}});
+map.on(L.Draw.Event.DELETED,()=>{aoi=null;aoiSource="";selectedLayer.clearLayers();$("aoi").textContent="0";msg("Drawn area removed. Select or draw an area.","READY")});
+async function extract(){
+ if(!aoi){msg("Select an administrative area or draw a polygon/rectangle first.","AREA REQUIRED");return}
+ $("extractBtn").disabled=true;$("csvBtn").disabled=true;$("geojsonBtn").disabled=true;
+ progress(15,"Sending selected area to local extraction service...");msg("Retrieving only tiles that intersect the selected area.","EXTRACTING");
+ buildingLayer.clearLayers();results=[];
  try{
-  clearMessages();
-  setStatus("Loading building footprints...");
-  const response=await fetch(url);
-  if(!response.ok)throw new Error("HTTP "+response.status);
-
-  const json=await response.json();
-  buildingFeatures=validateGeoJSON(json);
-
-  setStatus("Loaded "+buildingFeatures.length.toLocaleString()+" building features.");
-  showSuccess("Building footprints successfully loaded.");
-  runAnalysis();
-
- }catch(err){
-  showError("Building GeoJSON loading error: "+err.message+
-  "\nCheck the URL, file format and CORS access.");
- }
+  const r=await fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({aoi,confidence:Number($("confidence").value)})});
+  const d=await r.json();if(!r.ok)throw Error((d.error||"Extraction failed")+(d.details?": "+d.details:""));
+  results=d.geojson.features||[];summary=d.summary||{};
+  buildingLayer.addData(d.geojson);
+  if(results.length){const b=buildingLayer.getBounds();if(b.isValid())map.fitBounds(b,{padding:[25,25],maxZoom:18})}
+  progress(100,"Extraction complete.");updateAnalytics();
+  $("csvBtn").disabled=!results.length;$("geojsonBtn").disabled=!results.length;$("boundaryBtn").disabled=false;
+  const failures=(d.tile_errors||[]).length;
+  msg("Completed.\nIntersecting tiles: "+summary.tiles_intersecting+"\nSuccessful tiles: "+summary.tiles_succeeded+"\nFailed tiles: "+summary.tiles_failed+"\nFootprints: "+fmt(results.length,0)+(failures?"\nSome tile downloads failed; see local terminal for details.":""),"EXTRACTION COMPLETE");
+ }catch(e){console.error(e);progress(0,"Extraction stopped.");msg("Extraction error: "+e.message+"\nEnsure app.py is running and the computer has internet access.","ERROR")}
+ finally{$("extractBtn").disabled=false}
 }
-
-$("loadUrlBtn").addEventListener("click",loadBuildingURL);
-$("uploadBtn").addEventListener("click",()=>$("buildingFile").click());
-
-$("buildingFile").addEventListener("change",async e=>{
- const file=e.target.files[0];
- if(!file)return;
-
- try{
-  const json=JSON.parse(await file.text());
-  buildingFeatures=validateGeoJSON(json);
-  clearMessages();
-  showSuccess("Loaded "+buildingFeatures.length.toLocaleString()+" building features.");
-  runAnalysis();
- }catch(err){
-  showError("Invalid building file: "+err.message);
- }
-});
-
-/* ==============================================
-   SELECTED AREA BUILDING FILTER
-============================================== */
-
-function intersectsAdmin(building,admin){
- try{
-  return turf.booleanIntersects(building,admin);
- }catch(e){
-  try{
-   const centre=turf.center(building);
-   return turf.booleanPointInPolygon(centre,admin);
-  }catch(err){return false}
- }
+function updateAnalytics(){
+ const n=results.length,area=results.reduce((s,f)=>s+(Number(f.properties.area_in_meters)||0),0),conf=results.reduce((s,f)=>s+(Number(f.properties.confidence)||0),0),aoiKm=aoi?turf.area(aoi)/1e6:0;
+ $("count").textContent=fmt(n,0);$("area").textContent=fmt(area/10000);$("aoi").textContent=fmt(aoiKm);$("density").textContent=fmt(aoiKm?n/aoiKm:0);$("mean").textContent=fmt(n?area/n:0);$("meanConf").textContent=fmt(n?conf/n*100:0)+"%";
+ $("summary").textContent="Area source: "+aoiSource+"\nConfidence threshold: "+summary.confidence_threshold+"\nIntersecting tiles: "+summary.tiles_intersecting+"\nSuccessful tiles: "+summary.tiles_succeeded+"\nFailed tiles: "+summary.tiles_failed+"\nBuilding footprints: "+fmt(n,0)+"\nTotal footprint area: "+fmt(area/10000)+" ha";
+ const cb=[.65,.70,.75,.80,.85,.90,1.001],labels=["0.65–0.70","0.70–0.75","0.75–0.80","0.80–0.85","0.85–0.90","0.90–1.00"],counts=labels.map((_,i)=>results.filter(f=>{const c=+f.properties.confidence;return c>=cb[i]&&c<cb[i+1]}).length);
+ Plotly.react("confidenceChart",[{type:"bar",x:labels,y:counts,marker:{color:"#1976aa"}}],{margin:{l:40,r:8,t:8,b:55},paper_bgcolor:"transparent",plot_bgcolor:"transparent",font:{size:10,color:"#475569"},yaxis:{title:"Buildings",gridcolor:"#e5eaf0"},xaxis:{tickangle:-25}},{responsive:true,displayModeBar:false});
+ const bins=[0,50,100,200,500,1000,Infinity],bl=["<50","50–100","100–200","200–500","500–1,000",">1,000"],sc=bl.map((_,i)=>results.filter(f=>{const v=+f.properties.area_in_meters||0;return v>=bins[i]&&v<bins[i+1]}).length);
+ Plotly.react("sizeChart",[{type:"bar",x:bl,y:sc,marker:{color:"#19a6a5"}}],{margin:{l:40,r:8,t:8,b:45},paper_bgcolor:"transparent",plot_bgcolor:"transparent",font:{size:10,color:"#475569"},yaxis:{title:"Buildings",gridcolor:"#e5eaf0"},xaxis:{title:"Footprint area (m²)"}},{responsive:true,displayModeBar:false});
 }
-
-function getSelectedBuildings(){
- if(!buildingFeatures.length)return [];
- if(!selectedAdmin.length)return buildingFeatures;
-
- return buildingFeatures.filter(building=>
-  selectedAdmin.some(admin=>intersectsAdmin(building,admin))
- );
-}
-
-function getFootprintArea(feature){
- try{return turf.area(feature)}
- catch(e){return 0}
-}
-
-function getSelectedAreaKm2(){
- let total=0;
-
- selectedAdmin.forEach(f=>{
-  const existing=Number(
-   f.properties?.Area_sqkm??
-   f.properties?.area_sqkm??
-   f.properties?.Shape_Area
-  );
-
-  if(Number.isFinite(existing)&&existing>0){
-   total+=existing;
-  }else{
-   try{total+=turf.area(f)/1e6}catch(e){}
-  }
- });
-
- return total;
-}
-
-/* ==============================================
-   BUILDING MAP
-============================================== */
-
-function drawBuildingLayer(){
- if(buildingLayer)map.removeLayer(buildingLayer);
- buildingLayer=null;
-
- const display=$("display").value;
- const features=display==="all"?buildingFeatures:selectedBuildings;
-
- if(!features.length){
-  $("mapStatus").textContent=buildingFeatures.length?
-   "No building footprints in selected area":
-   "Load a building footprint GeoJSON to display buildings";
-  return;
- }
-
- buildingLayer=L.geoJSON({
-  type:"FeatureCollection",features:features
- },{
-  renderer:L.canvas(),
-  style:{
-   color:"#e11d48",weight:.45,
-   fillColor:"#e11d48",fillOpacity:.72
-  },
-  onEachFeature:(f,layer)=>{
-   layer.bindPopup(
-    "<b>Building footprint</b><br>"+
-    "Area: "+numberFormat(getFootprintArea(f))+" m²<br>"+
-    "Reporting year: "+$("year").value
-   );
-  }
- }).addTo(map);
-
- $("mapStatus").textContent=features.length.toLocaleString()+" footprints displayed";
-
- if(adminLayer)adminLayer.bringToFront();
-}
-
-$("display").addEventListener("change",drawBuildingLayer);
-
-/* ==============================================
-   ANALYTICS
-============================================== */
-
-function updateKPIs(){
- const count=selectedBuildings.length;
- const footprintArea=selectedBuildings.reduce((s,f)=>s+getFootprintArea(f),0);
- const aoi=getSelectedAreaKm2();
- const density=aoi>0?count/aoi:0;
- const mean=count>0?footprintArea/count:0;
-
- $("kBuildings").textContent=count.toLocaleString();
- $("kArea").textContent=numberFormat(footprintArea/10000);
- $("kAOI").textContent=numberFormat(aoi);
- $("kDensity").textContent=numberFormat(density);
- $("kMean").textContent=numberFormat(mean);
- $("kYear").textContent=$("year").value;
-}
-
-function chartLayout(title){
- return {
-  title:{text:title,font:{size:12}},
-  margin:{l:45,r:10,t:35,b:55},
-  paper_bgcolor:"#ffffff",plot_bgcolor:"#ffffff",
-  font:{family:"Arial",size:10,color:"#34495e"}
- };
-}
-
-function drawCharts(){
- const counts={};
-
- selectedBuildings.forEach(f=>{
-  const name=value(f,"district")||"Unspecified";
-  counts[name]=(counts[name]||0)+1;
- });
-
- const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,20);
-
- Plotly.newPlot("adminChart",[{
-  x:entries.map(x=>x[0]),
-  y:entries.map(x=>x[1]),
-  type:"bar",marker:{color:"#1769aa"}
- }],{
-  ...chartLayout("Building footprints by district"),
-  xaxis:{tickangle:-35},
-  yaxis:{title:"Building features"}
- },{responsive:true,displayModeBar:false});
-
- const areas=selectedBuildings.map(getFootprintArea);
-
- Plotly.newPlot("areaChart",[{
-  x:areas,type:"histogram",nbinsx:30,
-  marker:{color:"#16845b"}
- }],{
-  ...chartLayout("Footprint area distribution"),
-  xaxis:{title:"Footprint area (m²)"},
-  yaxis:{title:"Building count"}
- },{responsive:true,displayModeBar:false});
-
- const categories=[
-  {name:"Below 50 m²",min:0,max:50},
-  {name:"50–100 m²",min:50,max:100},
-  {name:"100–200 m²",min:100,max:200},
-  {name:"200–500 m²",min:200,max:500},
-  {name:"500 m² and above",min:500,max:Infinity}
- ];
-
- const values=categories.map(c=>
-  areas.filter(a=>a>=c.min&&a<c.max).length
- );
-
- Plotly.newPlot("sizeChart",[{
-  labels:categories.map(c=>c.name),
-  values,type:"pie",hole:.35
- }],chartLayout("Building size categories"),{
-  responsive:true,displayModeBar:false
- });
-}
-
-/* ==============================================
-   MAIN ANALYSIS FUNCTION
-   This function was missing in the previous version.
-============================================== */
-
-function runAnalysis(){
- try{
-  selectedAdmin=getFilteredAdmin();
-  selectedBuildings=getSelectedBuildings();
-
-  updateKPIs();
-  drawBuildingLayer();
-  drawCharts();
-
-  if(!buildingFeatures.length){
-   $("mapStatus").textContent="Administrative boundaries loaded — awaiting building data";
-   setStatus("Boundaries ready. Load building footprints to calculate counts.");
-  }else{
-   setStatus(
-    "Analysis complete: "+
-    selectedBuildings.length.toLocaleString()+
-    " building footprints in selected area."
-   );
-  }
-
- }catch(err){
-  console.error("Analysis error:",err);
-  showError("Analysis failed: "+err.message);
- }
-}
-
-/* ==============================================
-   BASEMAP
-============================================== */
-
-$("basemap").addEventListener("change",()=>{
- if(map.hasLayer(activeBase))map.removeLayer(activeBase);
- activeBase=baseLayers[$("basemap").value];
- activeBase.addTo(map);
- activeBase.bringToBack();
-});
-
-/* ==============================================
-   EXPORT
-============================================== */
-
-function downloadFile(content,filename,mime){
- const blob=new Blob([content],{type:mime});
- const url=URL.createObjectURL(blob);
- const a=document.createElement("a");
- a.href=url;a.download=filename;
- document.body.appendChild(a);
- a.click();a.remove();
- setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-
-$("csvBtn").addEventListener("click",()=>{
- const area=selectedBuildings.reduce((s,f)=>s+getFootprintArea(f),0);
- const aoi=getSelectedAreaKm2();
-
- const rows=[
-  ["Indicator","Value"],
-  ["Reporting year",$("year").value],
-  ["Building footprints",selectedBuildings.length],
-  ["Footprint area (ha)",area/10000],
-  ["Selected area (km2)",aoi],
-  ["Building density (buildings/km2)",aoi?selectedBuildings.length/aoi:0]
- ];
-
- const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n");
- downloadFile(csv,"Gambia_Building_Analytics.csv","text/csv");
-});
-
-$("geoBtn").addEventListener("click",()=>{
- downloadFile(JSON.stringify({
-  type:"FeatureCollection",features:selectedBuildings
- },null,2),"Gambia_Selected_Buildings.geojson","application/geo+json");
-});
-
-$("boundaryBtn").addEventListener("click",()=>{
- downloadFile(JSON.stringify({
-  type:"FeatureCollection",features:selectedAdmin
- },null,2),"Gambia_Selected_Boundaries.geojson","application/geo+json");
-});
-
-/* ==============================================
-   RESET
-============================================== */
-
-$("runBtn").addEventListener("click",runAnalysis);
-$("year").addEventListener("change",runAnalysis);
-
-$("resetBtn").addEventListener("click",()=>{
- ["region","lga","district","ward","ea"].forEach(id=>$(id).value="");
- $("year").value="2026";
- $("display").value="selected";
- $("basemap").value="street";
-
- if(map.hasLayer(activeBase))map.removeLayer(activeBase);
- activeBase=baseLayers.street;
- activeBase.addTo(map);
-
- updateCascade();
- selectedAdmin=getFilteredAdmin();
- drawAdminBoundary();
- runAnalysis();
- map.setView([13.45,-15.4],8);
-});
-
-/* ==============================================
-   STARTUP
-============================================== */
-
-loadAdminBoundaries();
-
+function download(data,name,type){const blob=new Blob([data],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+$("region").onchange=()=>refresh("region");$("lga").onchange=()=>refresh("lga");$("district").onchange=()=>refresh("district");$("ward").onchange=()=>refresh("ward");
+$("selectAreaBtn").onclick=chooseAdmin;
+$("resetSelectBtn").onclick=()=>{Object.keys(aliases).forEach(id=>$(id).value="");aoi=null;aoiSource="";drawn.clearLayers();selectedLayer.clearLayers();$("aoi").textContent="0";msg("Administrative selection reset.","READY")};
+$("extractBtn").onclick=extract;
+$("clearBtn").onclick=()=>{results=[];buildingLayer.clearLayers();["count","area","density","mean","meanConf"].forEach(id=>$(id).textContent="0");$("summary").textContent="No extraction has been performed.";$("csvBtn").disabled=true;$("geojsonBtn").disabled=true;progress(0,"Results cleared.");msg("Extraction results cleared. Selected area retained.","READY");Plotly.purge("confidenceChart");Plotly.purge("sizeChart")};
+$("basemap").onchange=e=>{map.removeLayer(activeBase);activeBase=basemaps[e.target.value];activeBase.addTo(map)};
+$("csvBtn").onclick=()=>{const cols=["latitude","longitude","area_in_meters","confidence","full_plus_code","tile_id"],q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';const rows=[cols.join(",")];results.forEach(f=>rows.push(cols.map(k=>q(f.properties[k])).join(",")));download(rows.join("\n"),"Gambia_Selected_Area_Buildings.csv","text/csv")};
+$("geojsonBtn").onclick=()=>download(JSON.stringify({type:"FeatureCollection",features:results},null,2),"Gambia_Selected_Area_Buildings.geojson","application/geo+json");
+$("boundaryBtn").onclick=()=>{if(aoi)download(JSON.stringify(aoi,null,2),"Gambia_Selected_Area.geojson","application/geo+json")};
+fetch("/api/health").then(r=>r.json()).then(d=>msg("Local extraction service connected. Loading administrative boundaries...","SERVICE READY")).catch(()=>msg("Cannot reach local service. Start app.py and open http://127.0.0.1:5000","SERVICE OFFLINE"));
+loadAdmin();
+setTimeout(()=>map.invalidateSize(),500);
 </script>
-</body>
-</html>
+</body></html>
